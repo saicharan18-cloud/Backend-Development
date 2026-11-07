@@ -4,7 +4,7 @@
 **Registration Number:** 252U1R8002  
 **Section:** CSE QE (2A)  
 **Institution:** Aurora  
-**Faculty:** Joel Prashanth D  
+**Faculty:** Sai Siva Teja  
 
 ---
 
