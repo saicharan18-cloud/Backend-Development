@@ -5,10 +5,11 @@
 - **Name:** Sai Charan Agolu
 - **Registration Number:** 252U1R8002
 - **Section:** CSE QE (2A)
-- **Course:** Backend Development Fundamentals · Year II Term II · Aurora
-- **Faculty:** Joel Prashanth D
+- **Course:** Backend Development Fundamentals · Year II Term II
 
 ---
+## Deployment Link:
+https://backend-development-p3qe.onrender.com/
 
 ## Objective
 
