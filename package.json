@@ -1,0 +1,16 @@
+﻿{
+   name: backend-development,
+  version: 1.0.0,
+  description: Backend Development Fundamentals - Aurora,
+  main: api/index.js,
+  type: module,
+  scripts: {
+    start: node lab-03/app.js,
+    build: echo Build complete 
+  },
+   dependencies: {
+    express: ^4.22.3,
+    sqlite: ^5.1.1,
+    sqlite3: ^5.1.7
+  }
+}

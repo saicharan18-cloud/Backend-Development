@@ -5,7 +5,7 @@ import { open } from "sqlite";
 const app = express();
 app.use(express.json());
 
-let db;
+let db = null;
 
 const sendError = (res, status, message) =>
   res.status(status).json({ message });
@@ -28,7 +28,74 @@ function parsePositiveInteger(value, fieldName) {
   return { value: number };
 }
 
-// Health/root route for local checks and Render health checks.
+export async function getDBInstance() {
+  if (db) {
+    return db;
+  }
+
+  // Use /tmp on Vercel/serverless environments as other paths are read-only
+  const databasePath =
+    process.env.DB_PATH ||
+    (process.env.VERCEL ? "/tmp/books.db" : "./books.db");
+
+  db = await open({
+    filename: databasePath,
+    driver: sqlite3.Database
+  });
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS book (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      author TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      pages INTEGER NOT NULL
+    )
+  `);
+
+  // Seed demo data only when the table is empty.
+  const row = await db.get("SELECT COUNT(*) AS count FROM book");
+  if (row.count === 0) {
+    const books = [
+      ["The Alchemist", "Paulo Coelho", 250, 208],
+      ["Wings of Fire", "A. P. J. Abdul Kalam", 300, 180],
+      ["Atomic Habits", "James Clear", 450, 320],
+      ["The Hobbit", "J. R. R. Tolkien", 350, 310],
+      ["1984", "George Orwell", 200, 328],
+      ["Clean Code", "Robert C. Martin", 600, 464],
+      ["The Great Gatsby", "F. Scott Fitzgerald", 220, 180],
+      ["Rich Dad Poor Dad", "Robert Kiyosaki", 280, 336],
+      ["Think and Grow Rich", "Napoleon Hill", 240, 250],
+      ["Ikigai", "Hector Garcia", 260, 194]
+    ];
+
+    const insertBook = await db.prepare(
+      "INSERT INTO book (title, author, price, pages) VALUES (?, ?, ?, ?)"
+    );
+    try {
+      for (const book of books) await insertBook.run(book);
+    } finally {
+      await insertBook.finalize();
+    }
+  }
+
+  return db;
+}
+
+// Middleware to ensure DB is initialized on every request (crucial for Serverless/Vercel)
+app.use(async (req, res, next) => {
+  try {
+    if (!db) {
+      await getDBInstance();
+    }
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    return sendError(res, 500, "Database connection error");
+  }
+});
+
+// Health/root route for local checks, Vercel, and Render health checks.
 app.get("/", (req, res) => {
   res.status(200).json({
     message: "Lab 3 Books REST API is running",
@@ -117,7 +184,6 @@ app.get("/books", async (req, res) => {
       params.push(maxPrice);
     }
 
-    // Column name and sort direction are allow-listed above.
     sql += ` ORDER BY ${orderBy} ${order} LIMIT ? OFFSET ?`;
     params.push(limitResult.value, offset);
 
@@ -256,50 +322,7 @@ app.use((error, req, res, next) => {
 
 export async function initializeDBAndServer(port = Number(process.env.PORT || 3000)) {
   try {
-    const databasePath = process.env.DB_PATH || "./books.db";
-
-    db = await open({
-      filename: databasePath,
-      driver: sqlite3.Database
-    });
-
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS book (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        author TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        pages INTEGER NOT NULL
-      )
-    `);
-
-    // Seed demo data only when the table is empty.
-    const row = await db.get("SELECT COUNT(*) AS count FROM book");
-    if (row.count === 0) {
-      const books = [
-        ["The Alchemist", "Paulo Coelho", 250, 208],
-        ["Wings of Fire", "A. P. J. Abdul Kalam", 300, 180],
-        ["Atomic Habits", "James Clear", 450, 320],
-        ["The Hobbit", "J. R. R. Tolkien", 350, 310],
-        ["1984", "George Orwell", 200, 328],
-        ["Clean Code", "Robert C. Martin", 600, 464],
-        ["The Great Gatsby", "F. Scott Fitzgerald", 220, 180],
-        ["Rich Dad Poor Dad", "Robert Kiyosaki", 280, 336],
-        ["Think and Grow Rich", "Napoleon Hill", 240, 250],
-        ["Ikigai", "Hector Garcia", 260, 194]
-      ];
-
-      const insertBook = await db.prepare(
-        "INSERT INTO book (title, author, price, pages) VALUES (?, ?, ?, ?)"
-      );
-      try {
-        for (const book of books) await insertBook.run(book);
-      } finally {
-        await insertBook.finalize();
-      }
-      console.log("Database initialized with 10 sample books.");
-    }
-
+    await getDBInstance();
     return new Promise((resolve) => {
       const server = app.listen(port, "0.0.0.0", () => {
         console.log(`Books API running on port ${port}`);
@@ -317,5 +340,5 @@ if (process.argv[1] && process.argv[1].endsWith("app.js")) {
   initializeDBAndServer();
 }
 
+export default app;
 export { app };
-
