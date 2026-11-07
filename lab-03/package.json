@@ -1,0 +1,27 @@
+{
+  "name": "lab-03",
+  "version": "1.0.0",
+  "description": "Lab 3: REST API, Query Parameters, Validation and Debugging",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "test": "node test-api.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "backend",
+    "rest-api",
+    "sqlite",
+    "lab03"
+  ],
+  "author": "Sai Charan Agolu",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.22.3",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}
